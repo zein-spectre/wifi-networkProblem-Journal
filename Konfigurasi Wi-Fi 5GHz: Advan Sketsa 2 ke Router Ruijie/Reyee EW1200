@@ -1,0 +1,85 @@
+# Panduan Konfigurasi Wi-Fi 5GHz: Advan Sketsa 2 ke Router Ruijie/Reyee EW1200
+
+**Tanggal:** 08 September 2026
+
+**Tools:**
+- **Advan Sketsa 2** — tablet Android (chipset Unisoc T310) yang menjadi perangkat client.
+- **Ruijie/Reyee EW1200** (ReyeeOS 1.313.2406) — router dual-band yang menyediakan jaringan Wi-Fi 5GHz.
+- **WiFi Analyzer** (aplikasi Android) — untuk memindai dan memverifikasi SSID 5GHz yang terdeteksi oleh tablet.
+- **Web UI Router Reyee** (akses via browser) — untuk mengubah konfigurasi channel, bandwidth, dan keamanan Wi-Fi.
+
+---
+
+## Masalah yang Dihadapi
+
+Advan Sketsa 2 tidak dapat mendeteksi SSID 5GHz (`@Zeinsroom_5G`) dari router Ruijie/Reyee EW1200, meskipun:
+- Tablet terbukti mendukung Wi-Fi 5GHz (bisa mendeteksi SSID 5GHz milik jaringan lain/tetangga).
+- Perangkat lain (HP lain) berhasil mendeteksi dan terhubung ke `@Zeinsroom_5G` tanpa masalah.
+- Router 5GHz dalam kondisi aktif dan berfungsi normal.
+
+Root cause: chipset Unisoc T310 pada Advan Sketsa 2 gagal memproses/mendeteksi beacon SSID pada channel grup **U-NII-1 (36–48)** dan **U-NII-2/2e (52–144, termasuk DFS)**, tetapi berhasil mendeteksi normal pada channel grup **U-NII-3 (149 ke atas)**.
+
+---
+
+## Langkah-Langkah
+
+**Langkah 1: Verifikasi kemampuan dasar 5GHz di tablet**
+Pasang aplikasi **WiFi Analyzer** di Advan Sketsa 2, lalu scan jaringan sekitar.
+--> Catatan kesalahan sebelumnya: Tidak ada. Langkah ini hanya konfirmasi bahwa tablet memang mampu mendeteksi sinyal 5GHz secara umum (terbukti dari terdeteksinya SSID 5GHz milik jaringan lain).
+
+**Langkah 2: Masuk ke Web UI router**
+Login ke halaman admin Reyee EW1200 melalui browser (biasanya via `192.168.1.1` atau alamat default router).
+--> Catatan kesalahan sebelumnya: Tidak ada.
+
+**Langkah 3: Cek dan catat kondisi awal SSID 5GHz**
+Buka menu **Wi-Fi → Wi-Fi**, pastikan **5G Wi-Fi** dalam kondisi **ON**, dan catat SSID (`@Zeinsroom_5G`).
+--> Catatan kesalahan sebelumnya: Tidak ada.
+
+**Langkah 4: Set Security ke OPEN untuk isolasi variabel**
+Ubah **Security** 5GHz ke **OPEN** sementara waktu, untuk memastikan masalah bukan disebabkan oleh autentikasi/enkripsi.
+--> Catatan kesalahan sebelumnya: Tidak ada, tapi langkah ini murni untuk eliminasi — hasilnya SSID tetap tidak terdeteksi meski tanpa password, sehingga masalah autentikasi bisa dicoret dari daftar kemungkinan.
+
+**Langkah 5: Set Bandwidth ke 20MHz**
+Buka **WLAN → Radio Frequency**, ubah **5G Bandwidth** dari Auto ke **20MHz**.
+--> Catatan kesalahan sebelumnya: Tidak ada.
+
+**Langkah 6: Uji channel non-DFS grup U-NII-1 (36, 40, 44, 48)**
+Di halaman **Radio Frequency**, ubah **5G Channel** satu per satu ke 36 → 40 → 44 → 48. Setiap kali ganti channel:
+1. Klik **Save**.
+2. Tunggu beberapa detik, refresh halaman.
+3. Verifikasi **Current Channel** benar-benar berubah sesuai pilihan (bukan hanya tertulis di dropdown).
+4. Scan ulang dari tablet menggunakan WiFi Analyzer.
+
+--> Catatan kesalahan sebelumnya: Pada percobaan awal, channel di dropdown sudah diubah tapi **Current Channel** belum ikut berubah (masih menunjukkan channel lama) karena belum menunggu proses apply router selesai. Solusinya: selalu re-check kolom Current Channel setelah Save, jangan asumsikan perubahan instan.
+
+**Langkah 7: Uji channel DFS (52, 56)**
+Ulangi proses yang sama seperti Langkah 6 untuk channel 52 dan 56 (grup U-NII-2/2e).
+--> Catatan kesalahan sebelumnya: Tidak ada. Semua channel di grup ini turut gagal, mengonfirmasi masalah bukan spesifik ke satu channel saja, melainkan ke seluruh rentang channel di bawah 100.
+
+**Langkah 8: Cek fitur-fitur lain sebagai eliminasi (Band Steering, Blocklist/Allowlist, Firmware)**
+- Cek **Wi-Fi → Wi-Fi → Advanced Settings → Band Steering**: pastikan statusnya (aktif/nonaktif tidak bisa diubah di beberapa model, itu normal).
+- Cek **WLAN → Blocklist/Allowlist**: pastikan mode di **"All devices except blocklisted"** dan daftar block kosong.
+- Cek **System/More → Upgrade**: pastikan firmware sudah versi terbaru yang tersedia.
+--> Catatan kesalahan sebelumnya: Tidak ada temuan bermasalah di bagian ini — semua sudah dalam kondisi default/aman. Langkah ini penting dilakukan untuk **menyingkirkan** kemungkinan lain sebelum menyimpulkan bahwa akar masalah ada di channel.
+
+**Langkah 9: Uji channel grup U-NII-3 (149 ke atas)**
+Ubah **5G Channel** ke **149**, Save, verifikasi Current Channel benar-benar 149, lalu scan ulang dari tablet.
+--> Catatan kesalahan sebelumnya: Ini adalah kesalahan asumsi terbesar dalam proses troubleshooting — channel di atas 100 (149–165) awalnya **tidak diprioritaskan** untuk diuji karena dianggap "tidak perlu" (fokus hanya ke channel non-DFS rendah dan DFS menengah). Padahal justru channel inilah yang berhasil.
+
+**Langkah 10: Set channel 149 secara permanen**
+Setelah konfirmasi SSID `@Zeinsroom_5G` muncul dan terdeteksi stabil di channel 149, kunci **5G Channel** ke **149** (jangan set ke Auto, agar tidak berpindah otomatis ke channel bermasalah).
+--> Catatan kesalahan sebelumnya: Tidak ada.
+
+**Langkah 11: Kembalikan Security ke mode aman**
+Ubah kembali **Security** 5GHz dari OPEN ke **WPA2-PSK** atau **WPA/WPA2-PSK**, isi ulang password Wi-Fi.
+--> Catatan kesalahan sebelumnya: Tidak ada. Langkah ini wajib dilakukan karena OPEN hanya untuk keperluan testing, bukan untuk pemakaian normal.
+
+**Langkah 12: Hubungkan tablet dan uji aplikasi target (Moonlight/Sunshine)**
+Connect Advan Sketsa 2 ke `@Zeinsroom_5G` (channel 149), lalu jalankan Moonlight untuk streaming dari Sunshine dan uji latency/kestabilan koneksi.
+--> Catatan kesalahan sebelumnya: Tidak ada.
+
+---
+
+## Kesimpulan Instalasi
+
+Masalah tablet Advan Sketsa 2 (chipset Unisoc T310) yang tidak dapat mendeteksi SSID 5GHz dari router Ruijie/Reyee EW1200 berhasil diselesaikan dengan mengubah **5G Channel router ke 149** (grup U-NII-3), setelah seluruh channel di grup U-NII-1 (36–48) dan U-NII-2/2e (52–56) terbukti gagal terdeteksi oleh perangkat tersebut. Konfigurasi akhir yang stabil: **Channel 149, Bandwidth 20MHz, Security WPA2-PSK**. Dengan konfigurasi ini, tablet berhasil terhubung ke jaringan 5GHz dan siap digunakan untuk kebutuhan game streaming via Moonlight/Sunshine dengan latensi yang jauh lebih baik dibanding menggunakan jaringan 2.4GHz.
